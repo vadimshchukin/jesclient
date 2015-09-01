@@ -40,13 +40,15 @@ public class Application {
 
         options.addOption("b", "submit", false, "submit job");
         options.addOption("f", "filename", true, "filename");
+        options.addOption("d", "dataset", true, "dataset");
 
+        options.addOption("w", "wait", false, "wait");
         options.addOption("g", "purge", false, "purge");
 
         return options;
     }
-
-    public String formatJobs(List<JESJob> jobs) throws IOException {
+    
+    public TextTable getJobTable() {
         TextTable jobTable = new TextTable();
 
         jobTable.addColumn("Name", 8);
@@ -56,6 +58,12 @@ public class Application {
         jobTable.addColumn("Class", 5);
         jobTable.addColumn("Completion", 10);
         jobTable.addColumn("Spool files", 4);
+        
+        return jobTable;
+    }
+
+    public String formatJobs(List<JESJob> jobs) throws IOException {
+        TextTable jobTable = getJobTable();
 
         for (JESJob jobJES : jobs) {
             String completion = "";
@@ -95,17 +103,27 @@ public class Application {
         System.out.println("submitting job");
         JESJob jobJES = clientJES.submit(sourceJCL);
         System.out.format("job %s submitted%n", jobJES.handle);
-
-        if (commandLine.hasOption("read-spool")) {
+        
+        if (commandLine.hasOption("wait") || commandLine.hasOption("read-spool")) {
             System.out.format("waiting for %s job to complete%n", jobJES.handle);
             jobJES.getSpoolFiles();
             while (!jobJES.status.equals("OUTPUT")) {
                 jobJES.getSpoolFiles();
                 Thread.sleep(100);
             }
+            
+            String completion = "";
+            if (jobJES.conditionCode != null) {
+                completion = String.format("CC=%d", jobJES.conditionCode);
+            } else if (jobJES.abendCode != null) {
+                completion = String.format("ABEND=%d", jobJES.abendCode);
+            }
+            System.out.format("job ended with %s%n", completion);
 
-            System.out.format("reading '%s' (%s) job spool%n", jobJES.name, jobJES.handle);
-            System.out.print(jobJES.readSpool());
+            if (commandLine.hasOption("read-spool")) {
+                System.out.format("reading '%s' (%s) job spool%n", jobJES.name, jobJES.handle);
+                System.out.print(jobJES.readSpool());
+            }
         }
 
         if (commandLine.hasOption("purge")) {
@@ -117,6 +135,48 @@ public class Application {
     public void processActions(CommandLine commandLine, JESClient clientJES) throws IOException, InterruptedException {
 
         if (commandLine.hasOption("submit")) {
+            if (commandLine.hasOption("dataset")) {
+                System.out.println("executing jobs");
+                
+                TextTable jobTable = getJobTable();
+                jobTable.addColumn("#", 4, 0);
+                
+                System.out.println(jobTable.formatSeparator());
+                System.out.println(jobTable.formatHeader());
+                System.out.println(jobTable.formatSeparator());
+                
+                String[] datasetNames = commandLine.getOptionValues("dataset");
+                int jobIndex = 0;
+                for (String datasetName : datasetNames) {
+                    String sourceJCL = clientJES.retrieveFile(String.format("'%s'", datasetName));
+                    
+                    JESJob jobJES = clientJES.submit(sourceJCL);
+                    String completion = "";
+                    
+                    if (commandLine.hasOption("wait")) {
+                        jobJES.getSpoolFiles();
+                        while (!jobJES.status.equals("OUTPUT")) {
+                            jobJES.getSpoolFiles();
+                            Thread.sleep(100);
+                        }
+                        
+                        if (jobJES.conditionCode != null) {
+                            completion = String.format("CC=%d", jobJES.conditionCode);
+                        } else if (jobJES.abendCode != null) {
+                            completion = String.format("ABEND=%d", jobJES.abendCode);
+                        }
+                    }
+                    
+                    System.out.println(jobTable.formatRow(jobIndex + 1, jobJES.name, jobJES.handle, jobJES.owner, jobJES.status, jobJES.type, completion,
+                            jobJES.spoolFileCount));
+                    jobIndex++;
+                }
+                
+                System.out.println(jobTable.formatSeparator());
+                
+                return;
+            }
+            
             if (!commandLine.hasOption("filename")) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
                 StringBuilder builder = new StringBuilder();
@@ -194,6 +254,7 @@ public class Application {
 
         if (commandLine.hasOption("help")) {
             HelpFormatter formatter = new HelpFormatter();
+            formatter.setOptionComparator(null);
             formatter.printHelp("jesclient", createOptions());
             return;
         }

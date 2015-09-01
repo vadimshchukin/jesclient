@@ -101,4 +101,12 @@ public class JESClient extends FTPClient {
         job.setSpool(outputStream.toString());
         return job;
     }
+    
+    public String retrieveFile(String fileName) throws IOException {
+        site("FILE=SEQ");
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        retrieveFile(fileName, outputStream);
+        site("FILE=JES");
+        return outputStream.toString();
+    }
 }
