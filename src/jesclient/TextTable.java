@@ -20,11 +20,15 @@ public class TextTable {
             width = name.length();
         }
         column.width = width;
-        columns.add(position, column);
+        if (position != null) {
+            columns.add(position, column);            
+        } else {
+            columns.add(column);
+        }
     }
     
     public void addColumn(String name, int width) {
-        addColumn(name, width, rows.size());
+        addColumn(name, width, null);
     }
 
     public void addRow(Object... cells) {
