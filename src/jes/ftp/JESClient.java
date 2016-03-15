@@ -1,4 +1,4 @@
-package jesclient;
+package jes.ftp;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

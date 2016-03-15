@@ -1,4 +1,4 @@
-package jesclient;
+package jes;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,6 +15,10 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+
+import jes.ftp.JESClient;
+import jes.ftp.JESJob;
+import jes.ftp.JESSpoolFile;
 
 public class Application {
     public Options createOptions() {

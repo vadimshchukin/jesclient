@@ -1,4 +1,4 @@
-package jesclient;
+package jes;
 
 import java.util.ArrayList;
 import java.util.Iterator;

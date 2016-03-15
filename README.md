@@ -1,12 +1,14 @@
 # jesclient
-IBM mainframe JCL job submitter. It uses FTP to communicate with JES. The JAR file includes all dependencies.
+Overview
+-----------
+z/OS JCL job submit utility. It uses FTP to communicate with JES. The JAR file includes all dependencies.
 
 Features:
-  - List jobs using JOBNAME and/or OWNER filters.
-  - List jobs spool files.
-  - Read and print jobs spool files.
-  - Submit both local and remote JCL jobs.
-  - Cancel/purge jobs.
+  - Lists jobs using JOBNAME and/or OWNER filters.
+  - Lists job spool files.
+  - Reads and prints job spool files.
+  - Submits both local and remote JCL jobs.
+  - Cancels/purges jobs.
 
 Command-line options:
 ```text
@@ -24,6 +26,10 @@ Command-line options:
  -s,--hostname <arg>   FTP hostname
  -u,--username <arg>   FTP username
 ```
+
+Source code
+-----------
+Source code contains 2 implementations of a JES client - one uses FTP to communicate with JES (jes.ftp package) and another uses DB2 stored procedures (jes.db2 package).
 
 Dependencies
 -----------
