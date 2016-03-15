@@ -27,6 +27,11 @@ Command-line options:
  -u,--username <arg>   FTP username
 ```
 
+Example of submitting a job:
+```sh
+java -jar jesclient.jar -s"server address" -u"FTP username" -p"FTP password" -b -f"job file name"
+```
+
 Source code
 -----------
 Source code contains 2 implementations of a JES client - one uses FTP to communicate with JES (jes.ftp package) and another uses DB2 stored procedures (jes.db2 package).
