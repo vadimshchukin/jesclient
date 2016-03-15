@@ -30,9 +30,8 @@ Command-line options:
 ```
 
 The following example submits job from a file, waits for job completion, prints job spool and automatically purges it:
-```sh
+```text
 $ java -jar jesclient.jar -s"server address" -u"FTP username" -p"FTP password" -b -f IEFBR14.txt -rg
-```
 connecting to 'server address'
 logging in 'server address' as 'FTP username'
 submitting job
@@ -43,12 +42,11 @@ reading 'IEFBR14' (J0134465) job spool
 <spool output here>
 purging J0134465 job
 logging out 'server address'
+```
 
 Example of listing jobs by search criteria:
-``` sh
+``` text
 $ java -jar jesclient.jar -s"server address" -u"FTP username" -p"FTP password" -o"*" -j"SSID*" -le 
-```
-```text
 connecting to 'server address'
 logging in 'server address' as 'FTP username'
 listing jobs
