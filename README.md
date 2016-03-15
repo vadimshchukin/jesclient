@@ -3,14 +3,16 @@ Overview
 -----------
 z/OS JCL job submit utility. It uses FTP to communicate with JES. The JAR file includes all dependencies.
 
-Features:
+Features
+-----------
   - Lists jobs using JOBNAME and/or OWNER filters.
   - Lists job spool files.
   - Reads and prints job spool files.
   - Submits both local and remote JCL jobs.
   - Cancels/purges jobs.
 
-Command-line options:
+Command-line options
+-----------
 ```text
  -h,--help             print this help and exit
  -s,--hostname <arg>   FTP hostname
@@ -29,6 +31,8 @@ Command-line options:
  -g,--purge            purge
 ```
 
+Examples
+-----------
 The following example submits job from a file, waits for job completion, prints job spool and automatically purges it:
 ```text
 $ java -jar jesclient.jar -s"server address" -u"FTP username" -p"FTP password" -b -f IEFBR14.txt -rg
