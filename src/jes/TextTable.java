@@ -5,13 +5,29 @@ import java.util.Iterator;
 import java.util.List;
 
 public class TextTable {
-    public class Column {
+	
+    private class Column {
         String name;
         Integer width;
     }
+    
+    private boolean printHeader;
+    private boolean useCSV;
+    private String delimiterCSV;
 
     private List<Column> columns = new ArrayList<Column>();
     private List<ArrayList<String>> rows = new ArrayList<ArrayList<String>>();
+    
+    public TextTable(boolean printHeader) {
+    	this.printHeader = printHeader;
+    	this.useCSV = false;
+    }
+    
+    public TextTable(boolean printHeader, boolean useCSV, String delimiterCSV) {
+    	this.printHeader = printHeader;
+    	this.useCSV = useCSV;
+    	this.delimiterCSV = delimiterCSV;
+    }
 
     public void addColumn(String name, int width, Integer position) {
         Column column = new Column();
@@ -40,6 +56,13 @@ public class TextTable {
         rows.add(row);
     }
     
+    private String formatStringAsCSV(String string) {
+    	if (string.contains("\n") || string.contains("\"") || string.contains(delimiterCSV)) {
+            string = "\"" + string.replaceAll("\"", "\"\"") + "\"";
+        }
+    	return string;
+    }
+    
     public String formatSeparator() {
         StringBuilder separator = new StringBuilder();
         for (Column column : columns) {
@@ -51,26 +74,49 @@ public class TextTable {
     
     public String formatHeader() {
         StringBuilder header = new StringBuilder();
-        header.append(String.format("|"));
-        for (Column column : columns) {
-            String text = String.format("%-" + column.width + "s", column.name);
-            header.append(String.format(" %s |", text));
+        if (!useCSV) {
+        	header.append(String.format("|"));        	
+        }
+        Iterator<Column> columnIterator = columns.iterator();
+        while (columnIterator.hasNext()) {
+        	Column column = columnIterator.next();
+        	if (useCSV) {
+        		header.append(formatStringAsCSV(column.name));
+        		if (columnIterator.hasNext()) {
+        			header.append(delimiterCSV);
+        		}
+        	} else {
+        		String text = String.format("%-" + column.width + "s", column.name);
+                header.append(String.format(" %s |", text));        		
+        	}
         }
         return header.toString();
     }
     
     public String formatRow(List<String> row) {
         StringBuilder builder = new StringBuilder();
-        builder.append(String.format("|"));
-        Iterator<Column> column = columns.iterator();
-        Iterator<String> cell = row.iterator();
-        while (column.hasNext()) {
-            String value = "";
-            if (cell.hasNext()) {
-                value = cell.next();
+        if (!useCSV) {
+        	builder.append(String.format("|"));        	
+        }
+        Iterator<Column> columnIterator = columns.iterator();
+        Iterator<String> cellIterator = row.iterator();
+        while (columnIterator.hasNext()) {
+        	Column column = columnIterator.next(); 
+        	
+            String cellValue = "";
+            if (cellIterator.hasNext()) {
+            	cellValue = cellIterator.next();
             }
-            String text = String.format("%-" + column.next().width + "s", value);
-            builder.append(String.format(" %s |", text));
+            
+            if (useCSV) {
+            	builder.append(formatStringAsCSV(cellValue));
+            	if (columnIterator.hasNext()) {
+            		builder.append(delimiterCSV);
+            	}
+            } else {
+            	String text = String.format("%-" + column.width + "s", cellValue);
+                builder.append(String.format(" %s |", text));            	
+            }
         }
         return builder.toString();
     }
@@ -86,17 +132,28 @@ public class TextTable {
 
     public String format() {
         StringBuilder table = new StringBuilder();
+        
         String separator = formatSeparator();
         
-        table.append(String.format("%s%n", separator));
-        table.append(String.format("%s%n", formatHeader()));
-        table.append(String.format("%s%n", separator));
+        if (printHeader) {
+        	if (!useCSV) {
+                table.append(String.format("%s%n", separator));
+            }
+            
+            table.append(String.format("%s%n", formatHeader()));        	
+        }
+        
+        if (!useCSV) {
+        	table.append(String.format("%s%n", separator)); 
+        }
 
         for (ArrayList<String> row : rows) {
             table.append(String.format("%s%n", formatRow(row)));
         }
 
-        table.append(String.format("%s%n", separator));
+        if (!useCSV) {
+        	table.append(String.format("%s%n", separator));        	
+        }
 
         return table.toString();
     }

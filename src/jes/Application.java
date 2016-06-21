@@ -3,7 +3,6 @@ package jes;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -14,14 +13,18 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 
 import jes.ftp.JESClient;
 import jes.ftp.JESJob;
 import jes.ftp.JESSpoolFile;
 
 public class Application {
-    public Options createOptions() {
+	
+	private CommandLine commandLine;
+	private String delimiterCSV;
+	private JESClient clientJES;
+	
+	private Options createOptions() {
         Options options = new Options();
 
         options.addOption("h", "help", false, "print this help and exit");
@@ -48,12 +51,17 @@ public class Application {
 
         options.addOption("w", "wait", false, "wait");
         options.addOption("g", "purge", false, "purge");
-
+        
+        options.addOption("v", "verbose", false, "enable verbose mode");
+        options.addOption("c", "hide-table-columns", false, "hide table columns");
+        options.addOption("x", "format-as-csv", false, "use CSV format");
+        options.addOption("m", "csv-delimiter", true, "CSV delimiter. If not specified then \",\" will be used");
+        
         return options;
     }
     
-    public TextTable getJobTable() {
-        TextTable jobTable = new TextTable();
+    private TextTable getJobTable() {
+        TextTable jobTable = new TextTable(!commandLine.hasOption("hide-table-columns"), commandLine.hasOption("format-as-csv"), delimiterCSV);
 
         jobTable.addColumn("Name", 8);
         jobTable.addColumn("Identifier", 8);
@@ -66,7 +74,7 @@ public class Application {
         return jobTable;
     }
 
-    public String formatJobs(List<JESJob> jobs) throws IOException {
+    private String formatJobs(List<JESJob> jobs) throws IOException {
         TextTable jobTable = getJobTable();
 
         for (JESJob jobJES : jobs) {
@@ -84,8 +92,8 @@ public class Application {
         return jobTable.format();
     }
 
-    public String formatSpool(List<JESSpoolFile> spoolFiles) throws IOException {
-        TextTable spoolTable = new TextTable();
+    private String formatSpool(List<JESSpoolFile> spoolFiles) throws IOException {
+        TextTable spoolTable = new TextTable(!commandLine.hasOption("hide-table-columns"), commandLine.hasOption("format-as-csv"), delimiterCSV);
 
         spoolTable.addColumn("Identifier", 4);
         spoolTable.addColumn("Step", 8);
@@ -102,7 +110,7 @@ public class Application {
         return spoolTable.format();
     }
 
-    public void processSubmit(CommandLine commandLine, JESClient clientJES, String sourceJCL)
+    private void processSubmit(String sourceJCL)
             throws IOException, InterruptedException {
         System.out.println("submitting job");
         JESJob jobJES = clientJES.submit(sourceJCL);
@@ -136,7 +144,7 @@ public class Application {
         }
     }
 
-    public void processActions(CommandLine commandLine, JESClient clientJES) throws IOException, InterruptedException {
+    private void processActions() throws IOException, InterruptedException {
 
         if (commandLine.hasOption("submit")) {
             if (commandLine.hasOption("dataset")) {
@@ -192,7 +200,7 @@ public class Application {
                 }
 
                 String sourceJCL = builder.toString();
-                processSubmit(commandLine, clientJES, sourceJCL);
+                processSubmit(sourceJCL);
 
                 return;
             }
@@ -200,7 +208,7 @@ public class Application {
             String[] filenames = commandLine.getOptionValues("filename");
             for (String filename : filenames) {
                 String sourceJCL = new String(Files.readAllBytes(Paths.get(filename)));
-                processSubmit(commandLine, clientJES, sourceJCL);
+                processSubmit(sourceJCL);
             }
 
             return;
@@ -248,13 +256,14 @@ public class Application {
         }
     }
 
-    public void run(String arguments[]) throws ParseException, SocketException, IOException, InterruptedException {
+    private void run(String arguments[]) throws Exception {
+    	
         CommandLineParser parser = new DefaultParser();
 
         Options options = new Options();
-        options.addOption("h", "help", false, "print this help and exit");
+        options.addOption("h", "help", false, "");
 
-        CommandLine commandLine = parser.parse(options, arguments, true);
+        commandLine = parser.parse(options, arguments, true);
 
         if (commandLine.hasOption("help")) {
             HelpFormatter formatter = new HelpFormatter();
@@ -265,7 +274,7 @@ public class Application {
 
         commandLine = parser.parse(createOptions(), arguments);
 
-        JESClient clientJES = new JESClient();
+        clientJES = new JESClient();
 
         String hostname = null;
         if (commandLine.hasOption("hostname")) {
@@ -280,12 +289,20 @@ public class Application {
         } else {
             username = System.getProperty("user.name");
         }
+        
+        if (commandLine.hasOption("csv-delimiter")) {
+        	delimiterCSV = commandLine.getOptionValue("csv-delimiter");
+        } else {
+        	delimiterCSV = ",";
+        }
 
-        System.out.format("connecting to '%s'%n", hostname);
+        System.out.format("connecting to '%s' host%n", hostname);
         clientJES.connect(hostname);
 
-        System.out.format("logging in '%s' as '%s'%n", hostname, username);
-        clientJES.login(username, commandLine.getOptionValue("password"));
+        System.out.format("logging in '%s' host as '%s' user%n", hostname, username);
+        if (!clientJES.login(username, commandLine.getOptionValue("password"))) {
+        	throw new Exception("username or password are invalid");
+        }
 
         if (commandLine.hasOption("owner")) {
             clientJES.setOwnerFilter(commandLine.getOptionValue("owner"));
@@ -295,9 +312,9 @@ public class Application {
             clientJES.setNameFilter(commandLine.getOptionValue("jobname"));
         }
 
-        processActions(commandLine, clientJES);
+        processActions();
 
-        System.out.format("logging out '%s'%n", hostname);
+        System.out.format("logging out of '%s' host%n", hostname);
         clientJES.logout();
     }
 
